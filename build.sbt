@@ -1,4 +1,4 @@
-val asyncHttpClient =  "com.ning" % "async-http-client" % "1.9.40"
+val asyncHttpClient =  "com.ning" % "async-http-client" % "1.9.40" exclude("io.netty", "netty")
 val netty=  "io.netty" % "netty-all" % "4.1.8.Final"
 val commonsIo = "commons-io" % "commons-io" % "2.4"
 val jsoup = "org.jsoup" % "jsoup" % "1.8.1"
