@@ -6,8 +6,8 @@ import javax.net.ssl.{HostnameVerifier, SSLContext, SSLSession, X509TrustManager
 
 import com.ning.http.client._
 import com.ning.http.client.cookie.Cookie
-import io.netty.handler.codec.http.{HttpHeaderNames, HttpHeaderValues}
-
+import org.jboss.netty.handler.codec.http.HttpHeaders.Names._
+import org.jboss.netty.handler.codec.http.HttpHeaders.Values._
 import scala.collection.JavaConverters._
 
 class HttpClient(clientSettings:ClientSettings = new ClientSettings()) {
@@ -59,11 +59,11 @@ class HttpClient(clientSettings:ClientSettings = new ClientSettings()) {
         request.setProxyServer(new ProxyServer(host, port, user, pass))
       }
     }
-    if(!config.customHeaders.headers.contains(HttpHeaderNames.ACCEPT_ENCODING.toString))
-      request.addHeader(HttpHeaderNames.ACCEPT_ENCODING.toString, HttpHeaderValues.GZIP.toString)
+    if(!config.customHeaders.headers.contains(ACCEPT_ENCODING))
+      request.addHeader(ACCEPT_ENCODING, GZIP)
 
     request
-      .addHeader(HttpHeaderNames.USER_AGENT.toString, config.userAgent)
+      .addHeader(USER_AGENT, config.userAgent)
       .setCookies(HttpClient.cookies(config,url.toString).asJava)
 
     config.customHeaders.headers.foreach(header => request.addHeader(header._1, header._2))
