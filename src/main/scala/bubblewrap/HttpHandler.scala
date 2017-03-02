@@ -3,9 +3,8 @@ package bubblewrap
 
 import java.io.IOException
 import java.util.concurrent.TimeoutException
-
-import com.ning.http.client.AsyncHandler.STATE
-import com.ning.http.client._
+import org.asynchttpclient.AsyncHandler.State
+import org.asynchttpclient.{AsyncHandler, HttpResponseBodyPart, HttpResponseHeaders, HttpResponseStatus}
 
 import scala.concurrent.Promise
 
@@ -13,9 +12,7 @@ class HttpHandler(config:CrawlConfig, url: WebUrl) extends AsyncHandler[Unit]{
   var body = new ResponseBody
   var statusCode:Int = 200
   val httpResponse = Promise[HttpResponse]()
-  var headers: ResponseHeaders = new ResponseHeaders(new HttpResponseHeaders() {
-    override def getHeaders: FluentCaseInsensitiveStringsMap = new FluentCaseInsensitiveStringsMap()
-  })
+  var headers: ResponseHeaders = _
   val startTime = System.currentTimeMillis()
   val UNKNOWN_ERROR = 1006
   val TIMEOUT_ERROR = 9999
@@ -34,31 +31,33 @@ class HttpHandler(config:CrawlConfig, url: WebUrl) extends AsyncHandler[Unit]{
   override def onCompleted(): Unit = {
     val content = Content(url, body.content, headers)
     if (content.contentLength <= config.minSize && statusCode == 200) statusCode = CAPTCHA_CONTENT
+    //emptying the body, so that the content doesn't get referenced in the HashedWheelTimerBucket
+    body = null
     httpResponse.success(HttpResponse(statusCode, SuccessResponse(content), headers, responseTime))
   }
 
-  override def onBodyPartReceived(bodyPart: HttpResponseBodyPart): STATE = {
+  override def onBodyPartReceived(bodyPart: HttpResponseBodyPart): State = {
     val part = bodyPart.getBodyPartBytes
     body.write(part)
     if (body.exceedsSize(config.maxSize)){
       httpResponse.success(HttpResponse(statusCode, FailureResponse(ExceededSize(config.maxSize)), headers, responseTime))
-      return STATE.ABORT
+      return State.ABORT
     }
-    STATE.CONTINUE
+    State.CONTINUE
   }
 
-  override def onStatusReceived(status: HttpResponseStatus): STATE = {
+  override def onStatusReceived(status: HttpResponseStatus): State = {
     statusCode = status.getStatusCode
-    STATE.CONTINUE
+    State.CONTINUE
   }
 
-  override def onHeadersReceived(httpResponseHeaders: HttpResponseHeaders): STATE = {
+  override def onHeadersReceived(httpResponseHeaders: HttpResponseHeaders): State = {
     headers = new ResponseHeaders(httpResponseHeaders)
     if(headers.exceedsSize(config.maxSize)) {
       httpResponse.success(HttpResponse(statusCode, FailureResponse(ExceededSize(config.maxSize)), headers, responseTime))
-      return STATE.ABORT
+      return State.ABORT
     }
-    STATE.CONTINUE
+    State.CONTINUE
   }
 
   private def responseTime = System.currentTimeMillis() - startTime

@@ -4,8 +4,10 @@ import java.io.IOException
 import java.util.concurrent.TimeoutException
 
 import bubblewrap.TestUtils._
-import com.ning.http.client.AsyncHandler.STATE
-import com.ning.http.client.{FluentCaseInsensitiveStringsMap, HttpResponseBodyPart, HttpResponseHeaders, HttpResponseStatus}
+import io.netty.handler.codec.http.{DefaultHttpHeaders, HttpHeaders}
+import org.asynchttpclient.AsyncHandler.State
+import org.asynchttpclient.netty.NettyResponseStatus
+import org.asynchttpclient.{HttpResponseBodyPart, HttpResponseHeaders, HttpResponseStatus}
 import org.mockito.Mockito._
 import org.scalatest.FlatSpec
 import org.scalatest.Inside
@@ -16,15 +18,15 @@ class HttpHandlerSpec extends FlatSpec with Inside{
   val url = WebUrl("http://www.example.com/1")
 
   def httpStatus(code:Int) = {
-    val status = mock(classOf[HttpResponseStatus])
+    val status = mock(classOf[NettyResponseStatus])
     when(status.getStatusCode).thenReturn(code)
     status
   }
 
   def httpHeaders(headers:(String, String)*) = {
-    new HttpResponseHeaders {
-      override def getHeaders: FluentCaseInsensitiveStringsMap = headers.foldLeft(new FluentCaseInsensitiveStringsMap())((m,t) =>m.add(t._1,t._2))
-    }
+    val defaultHeaders = new DefaultHttpHeaders
+    headers.foreach(h=>defaultHeaders.add(h._1,h._2))
+     new HttpResponseHeaders(defaultHeaders)
   }
 
   def bodyPart(value:Array[Byte]) = {
@@ -38,9 +40,9 @@ class HttpHandlerSpec extends FlatSpec with Inside{
     val response = handler.httpResponse.future
     handler.onStatusReceived(httpStatus(200))
 
-    handler.onHeadersReceived(httpHeaders()) should be(STATE.CONTINUE)
-    handler.onBodyPartReceived(bodyPart("Hello ".getBytes)) should be(STATE.CONTINUE)
-    handler.onBodyPartReceived(bodyPart("World".getBytes())) should be(STATE.CONTINUE)
+    handler.onHeadersReceived(httpHeaders()) should be(State.CONTINUE)
+    handler.onBodyPartReceived(bodyPart("Hello ".getBytes)) should be(State.CONTINUE)
+    handler.onBodyPartReceived(bodyPart("World".getBytes())) should be(State.CONTINUE)
 
     handler.onCompleted()
 
@@ -56,7 +58,7 @@ class HttpHandlerSpec extends FlatSpec with Inside{
     val response = handler.httpResponse.future
     handler.onStatusReceived(httpStatus(200))
 
-    handler.onHeadersReceived(httpHeaders("Content-Length" -> "1001")) should be(STATE.ABORT)
+    handler.onHeadersReceived(httpHeaders("Content-Length" -> "1001")) should be(State.ABORT)
     get(response).pageResponse match {
       case FailureResponse(error) => error.getMessage should be("Exceeds allowed max size 1000")
       case _ => fail("Did not produce expected failure response")
@@ -68,7 +70,7 @@ class HttpHandlerSpec extends FlatSpec with Inside{
     val response = handler.httpResponse.future
     handler.onStatusReceived(httpStatus(200))
 
-    handler.onHeadersReceived(httpHeaders("Content-Length" -> "1000")) should be(STATE.CONTINUE)
+    handler.onHeadersReceived(httpHeaders("Content-Length" -> "1000")) should be(State.CONTINUE)
     response.isCompleted should be(false)
   }
 
@@ -77,9 +79,9 @@ class HttpHandlerSpec extends FlatSpec with Inside{
     val response = handler.httpResponse.future
     handler.onStatusReceived(httpStatus(200))
 
-    handler.onHeadersReceived(httpHeaders()) should be(STATE.CONTINUE)
-    handler.onBodyPartReceived(bodyPart(("h"*500).getBytes)) should be(STATE.CONTINUE)
-    handler.onBodyPartReceived(bodyPart(("h"*501).getBytes)) should be(STATE.ABORT)
+    handler.onHeadersReceived(httpHeaders()) should be(State.CONTINUE)
+    handler.onBodyPartReceived(bodyPart(("h"*500).getBytes)) should be(State.CONTINUE)
+    handler.onBodyPartReceived(bodyPart(("h"*501).getBytes)) should be(State.ABORT)
     get(response).pageResponse match {
       case FailureResponse(error) => error.getMessage should be("Exceeds allowed max size 1000")
       case _ => fail("Did not produce expected failure response")
@@ -91,7 +93,7 @@ class HttpHandlerSpec extends FlatSpec with Inside{
     val response = handler.httpResponse.future
     handler.onStatusReceived(httpStatus(302))
 
-    handler.onHeadersReceived(httpHeaders("Location" -> "/home")) should be(STATE.CONTINUE)
+    handler.onHeadersReceived(httpHeaders("Location" -> "/home")) should be(State.CONTINUE)
     handler.onCompleted()
 
     get(response).redirectLocation should be(Some("/home"))
@@ -144,8 +146,8 @@ class HttpHandlerSpec extends FlatSpec with Inside{
     val response = handler.httpResponse.future
     handler.onStatusReceived(httpStatus(200))
 
-    handler.onHeadersReceived(httpHeaders()) should be(STATE.CONTINUE)
-    handler.onBodyPartReceived(bodyPart("small".getBytes)) should be(STATE.CONTINUE)
+    handler.onHeadersReceived(httpHeaders()) should be(State.CONTINUE)
+    handler.onBodyPartReceived(bodyPart("small".getBytes)) should be(State.CONTINUE)
 
     handler.onCompleted()
 
@@ -158,8 +160,8 @@ class HttpHandlerSpec extends FlatSpec with Inside{
     val response = handler.httpResponse.future
     handler.onStatusReceived(httpStatus(302))
 
-    handler.onHeadersReceived(httpHeaders()) should be(STATE.CONTINUE)
-    handler.onBodyPartReceived(bodyPart("small".getBytes)) should be(STATE.CONTINUE)
+    handler.onHeadersReceived(httpHeaders()) should be(State.CONTINUE)
+    handler.onBodyPartReceived(bodyPart("small".getBytes)) should be(State.CONTINUE)
 
     handler.onCompleted()
 

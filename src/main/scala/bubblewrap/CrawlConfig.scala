@@ -1,6 +1,6 @@
 package bubblewrap
 
-import com.ning.http.client.Realm
+import org.asynchttpclient.Realm
 
 case class CrawlConfig(proxy:Option[Proxy], userAgent:String, maxSize: Long, minSize: Long, cookies:Cookies = Cookies None, customHeaders: RequestHeaders = RequestHeaders None)
 case class RequestHeaders(headers: Map[String,String]) {

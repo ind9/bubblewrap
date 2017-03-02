@@ -1,4 +1,4 @@
-val asyncHttpClient =  "com.ning" % "async-http-client" % "1.9.40"
+val asyncHttpClient =  "org.asynchttpclient" % "async-http-client" % "2.0.29"
 val commonsIo = "commons-io" % "commons-io" % "2.4"
 val jsoup = "org.jsoup" % "jsoup" % "1.8.1"
 val tika = "org.apache.tika" % "tika-core" % "1.4"
