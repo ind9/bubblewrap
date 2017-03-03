@@ -9,7 +9,7 @@ import org.asynchttpclient.{AsyncHandler, HttpResponseBodyPart, HttpResponseHead
 import scala.concurrent.Promise
 
 class HttpHandler(config:CrawlConfig, url: WebUrl) extends AsyncHandler[Unit]{
-  var body = new ResponseBody
+  private[bubblewrap] var body = new ResponseBody
   var statusCode:Int = 200
   val httpResponse = Promise[HttpResponse]()
   var headers: ResponseHeaders = _

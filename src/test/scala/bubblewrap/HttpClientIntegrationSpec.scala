@@ -9,7 +9,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class HttpClientIntegrationSpec extends FlatSpec {
   it should "fetch some page" in {
 
-    val url = "https://www.amazon.co.uk/gp/yourstore/pym/ref=pd_pyml_rhf/255-0060092-5819207"
+      val url = "https://www.amazon.co.uk/gp/yourstore/pym/ref=pd_pyml_rhf/255-0060092-5819207"
        val client: HttpClient = new HttpClient()
 
         //val proxy = ProxyWithAuth("198.7.107.254", 60000, "indix", "yFL4g3558j", AuthScheme("basic"))

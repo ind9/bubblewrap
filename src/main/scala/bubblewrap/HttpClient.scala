@@ -36,8 +36,10 @@ class HttpClient(clientSettings:ClientSettings = new ClientSettings()) {
       case PlainProxy(host, port) => request.setProxyServer(new ProxyServer.Builder(host,port).build())
       case proxy@ProxyWithAuth(host, port, user, pass, scheme) => {
         val proxyServerBuilder = new ProxyServer.Builder(host,port)
-        proxyServerBuilder.setRealm(new Realm.Builder(user,pass).setScheme(scheme.toNingScheme).build())
+        val realm = new Realm.Builder(user,pass).setScheme(scheme.toNingScheme).setUsePreemptiveAuth(true).build()
+        proxyServerBuilder.setRealm(realm)
         request.setProxyServer(proxyServerBuilder.build())
+        request.setRealm(realm)
       }
     }
     if(!config.customHeaders.headers.contains(ACCEPT_ENCODING))
