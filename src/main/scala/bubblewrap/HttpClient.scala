@@ -11,56 +11,66 @@ import io.netty.handler.codec.http.HttpHeaders.Names._
 import io.netty.handler.codec.http.HttpHeaders.Values._
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
 import org.asynchttpclient.cookie.Cookie
-
+import org.asynchttpclient.netty.NettyResponseFuture
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.collection.JavaConverters._
+import scala.util.Try
 
-class HttpClient(clientSettings:ClientSettings = new ClientSettings()) {
+class HttpClient(clientSettings: ClientSettings = ClientSettings()) {
   val lenientSSLContext = SslContextBuilder.forClient().sslProvider(SslProvider.JDK).trustManager(InsecureTrustManagerFactory.INSTANCE).build()
 
-  val timer = new HashedWheelTimer(100,TimeUnit.MILLISECONDS,2)
+  val timer = new HashedWheelTimer(100, TimeUnit.MILLISECONDS, 3072)
   val client = new DefaultAsyncHttpClient(new DefaultAsyncHttpClientConfig.Builder()
-                                      .setConnectTimeout(clientSettings.connectionTimeout)
-                                      .setRequestTimeout(clientSettings.requestTimeout)
-                                      .setReadTimeout(clientSettings.readTimeout)
-                                      .setSslContext(lenientSSLContext)
-                                      .setAcceptAnyCertificate(true)
-                                      .setMaxRequestRetry(clientSettings.retries)
-                                      .setFollowRedirect(false)
-                                      .setNettyTimer(timer).build())
+                                          .setConnectTimeout(clientSettings.connectionTimeout)
+                                          .setRequestTimeout(clientSettings.requestTimeout)
+                                          .setReadTimeout(clientSettings.readTimeout)
+                                          .setSslContext(lenientSSLContext)
+                                          .setAcceptAnyCertificate(true)
+                                          .setMaxRequestRetry(clientSettings.retries)
+                                          .setFollowRedirect(false)
+                                          .setNettyTimer(timer).build())
 
 
-  def get(url: WebUrl, config:CrawlConfig) = {
+  def get(url: WebUrl, config: CrawlConfig) = {
     val handler = new HttpHandler(config, url)
     val request = client.prepareGet(url.toString)
-    config.proxy.foreach{
-      case PlainProxy(host, port) => request.setProxyServer(new ProxyServer.Builder(host,port).build())
+    config.proxy.foreach {
+      case PlainProxy(host, port) => request.setProxyServer(new ProxyServer.Builder(host, port).build())
       case proxy@ProxyWithAuth(host, port, user, pass, scheme) => {
-        val proxyServerBuilder = new ProxyServer.Builder(host,port)
-        val realm = new Realm.Builder(user,pass).setScheme(scheme.toNingScheme).setUsePreemptiveAuth(true).build()
+        val proxyServerBuilder = new ProxyServer.Builder(host, port)
+        val realm = new Realm.Builder(user, pass).setScheme(scheme.toNingScheme).setUsePreemptiveAuth(true).build()
         proxyServerBuilder.setRealm(realm)
         request.setProxyServer(proxyServerBuilder.build())
         request.setRealm(realm)
       }
     }
-    if(!config.customHeaders.headers.contains(ACCEPT_ENCODING))
+    if (!config.customHeaders.headers.contains(ACCEPT_ENCODING))
       request.addHeader(ACCEPT_ENCODING, GZIP)
 
     request
       .addHeader(USER_AGENT, config.userAgent)
-      .setCookies(HttpClient.cookies(config,url.toString).asJava)
-
+      .setCookies(HttpClient.cookies(config, url.toString).asJava)
     config.customHeaders.headers.foreach(header => request.addHeader(header._1, header._2))
-    request.execute(handler)
-    handler.httpResponse.future
+    val nettyFuture = request.execute(handler)
+    val responseFuture = handler.httpResponse.future
+    responseFuture.onComplete(res => {
+      Try(nettyFuture.asInstanceOf[NettyResponseFuture[Unit]].cancelTimeouts()).recover {
+        //Possible only if we're not using Netty Async HTTP Provider
+        case e => e.printStackTrace()
+      }.get
+    })
+    responseFuture
   }
 }
 
 object HttpClient {
   val oneYear = 360l * 24 * 60 * 60 * 1000
-  def cookies(config:CrawlConfig, url:String) = {
+
+  def cookies(config: CrawlConfig, url: String) = {
     config.cookies.cookies
-      .map(cookie => Cookie.newValidCookie(cookie._1,cookie._2, false, host(url),"/", oneYear, url.startsWith("https"),true))
+      .map(cookie => Cookie.newValidCookie(cookie._1, cookie._2, false, host(url), "/", oneYear, url.startsWith("https"), true))
       .toList
   }
-  def host(url:String) = new URL(url).getHost
+
+  def host(url: String) = new URL(url).getHost
 }
