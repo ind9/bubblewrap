@@ -10,9 +10,16 @@ import org.jsoup.nodes.{Document, Element}
 import scala.collection.JavaConversions._
 import scala.util.Try
 
-case class Content(url: WebUrl, content: Array[Byte], contentType: Option[String] = None, contentCharset: Option[String] = None, contentEncoding: Option[String] = None) extends ContentType {
+case class Content(
+                    url: WebUrl,
+                    content: Array[Byte],
+                    contentType: Option[String] = None,
+                    contentCharset: Option[String] = None,
+                    contentEncoding: Option[String] = None,
+                    shouldDeflate: Boolean = true
+                  ) extends ContentType {
   def asString = {
-    if (isGzip(this)) {
+    if (shouldDeflate && isGzip(this)) {
       Try({
         val gzipStream = new GZIPInputStream(new ByteArrayInputStream(content))
         scala.io.Source.fromInputStream(gzipStream).mkString
@@ -90,6 +97,10 @@ object Page {
 object Content {
   def apply(url: WebUrl, body: Array[Byte], responseHeaders: ResponseHeaders): Content = {
     Content(url, body, responseHeaders.contentEncoding, responseHeaders.contentCharset, responseHeaders.contentType)
+  }
+
+  def apply(url: WebUrl, body: Array[Byte], responseHeaders: ResponseHeaders, shouldDeflate: Boolean): Content = {
+    Content(url, body, responseHeaders.contentEncoding, responseHeaders.contentCharset, responseHeaders.contentType, shouldDeflate)
   }
 }
 

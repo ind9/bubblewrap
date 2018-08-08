@@ -31,7 +31,7 @@ class HttpHandler(config:CrawlConfig, url: WebUrl) extends AsyncHandler[Unit]{
 
 
   override def onCompleted(): Unit = {
-    val content = Content(url, body.content, headers)
+    val content = Content(url, body.content, headers, config.shouldDeflate)
     if (content.contentLength <= config.minSize && statusCode == 200) statusCode = CAPTCHA_CONTENT
     //emptying the body, so that the content doesn't get referenced in the HashedWheelTimerBucket
     body = null
