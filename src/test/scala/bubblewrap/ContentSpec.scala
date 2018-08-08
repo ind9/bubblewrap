@@ -18,4 +18,9 @@ class ContentSpec  extends FlatSpec{
     content.asString should be(koreanString)
   }
 
+  it should "have same contentLength and length in UTF-8 encoding" in {
+    val content = Content(null, "test string".getBytes("UTF-8"))
+    content.length should be(content.contentLength)
+  }
+
 }
