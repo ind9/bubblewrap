@@ -45,4 +45,12 @@ class ContentSpec  extends FlatSpec{
 
     content.asString should be (new String(ungzipped, encoding))
   }
+
+  it should "read Gzipped content (with unknown encoding) to string" in {
+    val gzipped = readAsBytes("/fixtures/3-gzipped.html")
+    val ungzipped = readAsBytes("/fixtures/3-ungzipped.html")
+    val content = Content(WebUrl("http://www.example.com/dummy"), gzipped, contentType = Some("gzip"), contentCharset = None, contentEncoding = Some("text/html"))
+
+    content.asString should be (new String(ungzipped))
+  }
 }
