@@ -1,10 +1,9 @@
 package bubblewrap
 
-import java.io.ByteArrayInputStream
-import java.nio.charset.Charset
+import java.io.ByteArrayOutputStream
 import java.util.regex.Pattern
-import java.util.zip.GZIPInputStream
 
+import org.apache.commons.io.IOUtils
 import org.jsoup.Jsoup
 import org.jsoup.nodes.{Document, Element}
 
@@ -12,16 +11,11 @@ import scala.collection.JavaConversions._
 import scala.util.Try
 
 case class Content(url: WebUrl, content: Array[Byte], contentType: Option[String] = None, contentCharset: Option[String] = None, contentEncoding: Option[String] = None) extends ContentType {
-  def asString = {
-    val charset = contentCharset.getOrElse("UTF-8").toUpperCase
-    lazy val decoder = Try(Charset.forName(charset).newDecoder).getOrElse(Charset.forName("UTF-8").newDecoder())
+  def asString: String = {
     if (isGzip(this)) {
-      Try({
-        val gzipStream = new GZIPInputStream(new ByteArrayInputStream(content))
-        scala.io.Source.fromInputStream(gzipStream)(decoder).mkString
-      }).getOrElse(new String(content, charset))
+      asString(Try(decompress(content)).getOrElse(content))
     } else {
-      new String(content, charset)
+      asString(content)
     }
   }
 
@@ -30,6 +24,28 @@ case class Content(url: WebUrl, content: Array[Byte], contentType: Option[String
   def length = content.length
 
   def contentLength = asString.length
+
+  import java.io.ByteArrayInputStream
+  import java.util.zip.GZIPInputStream
+
+  private def decompress(contentBytes: Array[Byte]): Array[Byte] = {
+    val inputStream = new ByteArrayInputStream(contentBytes)
+    val gzipInStream = new GZIPInputStream(inputStream)
+    val out = new ByteArrayOutputStream()
+    try {
+      IOUtils.copy(gzipInStream, out)
+      out.toByteArray
+    } finally {
+      inputStream.close()
+      gzipInStream.close()
+      out.close()
+    }
+  }
+
+  private def asString(contentBytes: Array[Byte]) = {
+    val charset = contentCharset.getOrElse("UTF-8").toUpperCase
+    new String(contentBytes, charset)
+  }
 }
 
 trait ContentType {
