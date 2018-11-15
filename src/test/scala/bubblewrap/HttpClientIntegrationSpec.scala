@@ -32,4 +32,16 @@ class HttpClientIntegrationSpec extends FlatSpec {
     }
     Await.result(body, 100000 millis)
   }
+
+  it should "fetch some Gzip-ed page and decompress the page" in {
+    val url = "https://www.houstonwines.com/websearch_results.html?kw=*"
+    val client: HttpClient = new HttpClient()
+    val body = client.get(WebUrl.from(url), CrawlConfig(None, "" , 100000000, 10, Cookies.None)).map { response =>
+      response.pageResponse match {
+        case SuccessResponse(page) => page.asString
+        case FailureResponse(error) => error.printStackTrace(); List.empty[WebUrl]
+      }
+    }
+    Await.result(body, 100000 millis)
+  }
 }
