@@ -11,15 +11,13 @@ import scala.collection.JavaConversions._
 import scala.util.Try
 
 case class Content(url: WebUrl, content: Array[Byte], contentType: Option[String] = None, contentCharset: Option[String] = None, contentEncoding: Option[String] = None) extends ContentType {
-  def asString: String = {
-    if (isGzip(this)) {
-      asString(Try(decompress(content)).getOrElse(content))
-    } else {
-      asString(content)
-    }
-  }
+  val asString: String = new String(asBytes, contentCharset.getOrElse("UTF-8").toUpperCase)
 
-  def asBytes = content
+  def asBytes = if (isGzip(this)) {
+    Try(decompress(content)).getOrElse(content)
+  } else {
+    content
+  }
 
   def length = content.length
 
@@ -40,11 +38,6 @@ case class Content(url: WebUrl, content: Array[Byte], contentType: Option[String
       gzipInStream.close()
       out.close()
     }
-  }
-
-  private def asString(contentBytes: Array[Byte]) = {
-    val charset = contentCharset.getOrElse("UTF-8").toUpperCase
-    new String(contentBytes, charset)
   }
 }
 
