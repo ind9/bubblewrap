@@ -1,16 +1,13 @@
 package bubblewrap
 
 import java.net.URL
-import java.util.concurrent.TimeUnit
 
 import io.netty.handler.codec.http.HttpHeaders.Names._
 import io.netty.handler.codec.http.HttpHeaders.Values._
 import io.netty.handler.codec.http.cookie.ClientCookieDecoder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
 import io.netty.handler.ssl.{SslContextBuilder, SslProvider}
-import io.netty.util.HashedWheelTimer
 import org.asynchttpclient.netty.NettyResponseFuture
-import org.asynchttpclient.netty.channel.DefaultChannelPool
 import org.asynchttpclient.proxy.ProxyServer
 import org.asynchttpclient.{DefaultAsyncHttpClient, DefaultAsyncHttpClientConfig, Realm}
 
@@ -21,19 +18,25 @@ import scala.util.Try
 class HttpClient(clientSettings: ClientSettings = ClientSettings()) {
   val lenientSSLContext = SslContextBuilder.forClient().sslProvider(SslProvider.JDK).trustManager(InsecureTrustManagerFactory.INSTANCE).build()
 
-  val timer = new HashedWheelTimer(100, TimeUnit.MILLISECONDS, 3072)
-  val pool = new DefaultChannelPool(60000, -1, DefaultChannelPool.PoolLeaseStrategy.FIFO, timer, 1000)
-  val client = new DefaultAsyncHttpClient(new DefaultAsyncHttpClientConfig.Builder()
-                                          .setConnectTimeout(clientSettings.connectionTimeout)
-                                          .setRequestTimeout(clientSettings.requestTimeout)
-                                          .setReadTimeout(clientSettings.readTimeout)
-                                          .setSslContext(lenientSSLContext)
-                                          .setUseInsecureTrustManager(true)
-                                          .setMaxRequestRetry(clientSettings.retries)
-                                          .setFollowRedirect(false)
-                                          .setKeepAlive(clientSettings.keepAlive)
-                                          .setChannelPool(pool)
-                                          .setNettyTimer(timer).build())
+  //  val timer = new HashedWheelTimer(100, TimeUnit.MILLISECONDS, 3072)
+  //  val pool = new DefaultChannelPool(60000, -1, DefaultChannelPool.PoolLeaseStrategy.FIFO, timer, 1000)
+  val client = new DefaultAsyncHttpClient(
+    new DefaultAsyncHttpClientConfig.Builder()
+      .setConnectTimeout(clientSettings.connectionTimeout)
+      .setRequestTimeout(clientSettings.requestTimeout)
+      .setReadTimeout(clientSettings.readTimeout)
+      .setSslContext(lenientSSLContext)
+      .setUseInsecureTrustManager(true)
+      .setMaxRequestRetry(clientSettings.retries)
+      .setFollowRedirect(false)
+      .setKeepAlive(clientSettings.keepAlive)
+      .setMaxConnections(clientSettings.maxTotalConnections)
+      .setMaxConnectionsPerHost(clientSettings.maxConnectionPerHost)
+      .setPooledConnectionIdleTimeout(60000)
+      //      .setChannelPool(pool)
+      //      .setNettyTimer(timer)
+      .build()
+  )
 
 
   def get(url: WebUrl, config: CrawlConfig) = {
