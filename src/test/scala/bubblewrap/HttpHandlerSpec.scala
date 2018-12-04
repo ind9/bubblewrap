@@ -142,20 +142,6 @@ class HttpHandlerSpec extends FlatSpec with Inside{
     get(response).status should be(9998)
   }
 
-  it should "use captcha error code when content length is smaller than captcha content length for 200 status" in {
-    val handler = new HttpHandler(config, url)
-    val response = handler.httpResponse.future
-    handler.onStatusReceived(httpStatus(200))
-
-    handler.onHeadersReceived(httpHeaders()) should be(State.CONTINUE)
-    handler.onBodyPartReceived(bodyPart("small".getBytes)) should be(State.CONTINUE)
-
-    handler.onCompleted()
-
-    response.isCompleted should be(true)
-    get(response).status should be(9997)
-  }
-
   it should "not use captcha error code when content length is smaller than captcha content length for non 200 status" in {
     val handler = new HttpHandler(config, url)
     val response = handler.httpResponse.future
