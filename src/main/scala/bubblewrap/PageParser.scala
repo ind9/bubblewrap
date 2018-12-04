@@ -11,7 +11,7 @@ import scala.collection.JavaConversions._
 import scala.util.Try
 
 case class Content(url: WebUrl, content: Array[Byte], contentType: Option[String] = None, contentCharset: Option[String] = None, contentEncoding: Option[String] = None) extends ContentType {
-  val asString: String = new String(asBytes, contentCharset.getOrElse("UTF-8").toUpperCase)
+  lazy val asString: String = new String(asBytes, contentCharset.getOrElse("UTF-8").toUpperCase)
 
   def asBytes = if (isGzip(this)) {
     Try(decompress(content)).getOrElse(content)
