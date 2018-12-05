@@ -9,6 +9,7 @@ import io.netty.handler.codec.http.cookie.ClientCookieDecoder
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory
 import io.netty.handler.ssl.{SslContextBuilder, SslProvider}
 import io.netty.util.HashedWheelTimer
+import org.asynchttpclient.filter.ThrottleRequestFilter
 import org.asynchttpclient.proxy.ProxyServer
 import org.asynchttpclient.{DefaultAsyncHttpClient, DefaultAsyncHttpClientConfig, Realm}
 
@@ -27,6 +28,7 @@ class HttpClient(clientSettings: ClientSettings = ClientSettings()) {
                                           .setUseInsecureTrustManager(true)
                                           .setMaxRequestRetry(clientSettings.retries)
                                           .setFollowRedirect(false)
+                                          .addRequestFilter(new ThrottleRequestFilter(clientSettings.maxTotalConnections))
                                           .setKeepAlive(clientSettings.keepAlive).setNettyTimer(timer)
                                           .build())
 
