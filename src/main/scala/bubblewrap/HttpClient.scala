@@ -28,7 +28,7 @@ class HttpClient(clientSettings: ClientSettings = ClientSettings()) {
                                           .setUseInsecureTrustManager(true)
                                           .setMaxRequestRetry(clientSettings.retries)
                                           .setFollowRedirect(false)
-                                          .addRequestFilter(new ThrottleRequestFilter(clientSettings.maxTotalConnections))
+                                          .addRequestFilter(new ThrottleRequestFilter(clientSettings.maxTotalConnections, clientSettings.requestThrottleTimeout))
                                           .setKeepAlive(clientSettings.keepAlive).setNettyTimer(timer)
                                           .build())
 
